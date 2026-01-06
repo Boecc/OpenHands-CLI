@@ -14,6 +14,9 @@ from openhands_cli.tui.widgets.autocomplete import EnhancedAutoComplete
 
 class PasteAwareInput(Input):
     """Custom Input widget that can handle paste events and notify parent."""
+    BINDINGS = [
+        Binding("ctrl+a", "select_all", "Select all"),
+    ]
 
     class PasteDetected(Message):
         """Message sent when multi-line paste is detected."""
@@ -32,12 +35,16 @@ class PasteAwareInput(Input):
             event.stop()
         # For single-line content, let the default paste behavior handle it
 
+class SelectAwareTextArea(TextArea):
+    """TextArea that overrides Ctrl+A to select all."""
+    BINDINGS = [
+        Binding("ctrl+a", "select_all", "Select all"),
+    ]
 
 class InputField(Container):
     BINDINGS: ClassVar = [
         Binding("ctrl+l", "toggle_input_mode", "Toggle single/multi-line input"),
         Binding("ctrl+j", "submit_textarea", "Submit multi-line input"),
-        Binding("ctrl+a", "select_all", "Select all"),
     ]
 
     DEFAULT_CSS = """
@@ -99,7 +106,7 @@ class InputField(Container):
         yield self.input_widget
 
         # Multi-line textarea (initially hidden)
-        self.textarea_widget = TextArea(
+        self.textarea_widget = SelectAwareTextArea(
             id="user_textarea",
             soft_wrap=True,
             show_line_numbers=False,
@@ -153,14 +160,6 @@ class InputField(Container):
                 self.action_toggle_input_mode()
                 # Submit the content
                 self.post_message(self.Submitted(content))
-
-    def action_select_all(self) -> None:
-        """Select all content in the active input widget."""
-        if self.is_multiline_mode:
-            self.textarea_widget.select_all()
-        else:
-            self.input_widget.action_end()
-            self.input_widget.select_all()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle single-line input submission."""
